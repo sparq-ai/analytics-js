@@ -1,6 +1,6 @@
 {
   "name": "@searchtap/analytics-js",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "main": "lib/index.min.js",
   "types": "lib/types/StAnalyticsClient.d.ts",
   "scripts": {
