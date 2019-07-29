@@ -1,7 +1,7 @@
 /***
  * User Id response
  */
-export interface UserIdResponse {
+export interface IUserIdResponse {
   data: {
     userId: string,
     createdAt: number

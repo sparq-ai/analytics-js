@@ -1,14 +1,14 @@
 import Axios, {AxiosInstance} from "axios";
-import {UserIdResponse} from "./domain/UserIdResponse";
+import {IUserIdResponse} from "./domain/IUserIdResponse";
 import * as cookies from "browser-cookies";
 import {JSONHelper} from "./util/JSONHelper";
-import {AnalyticsData} from "./domain/Analytics Data";
+import {IAnalyticsData} from "./domain/IAnalyticsData";
+import * as logger from "./util/Logger";
 
 
 export = class StAnalyticsClient {
   private localUserId: string;
   private trackingRestClient!: AxiosInstance;
-  private ipv4Address: string;
   private localUserCookieKey = "uId";
   private globalEventProperties: { [prop: string]: any };
 
@@ -20,26 +20,25 @@ export = class StAnalyticsClient {
         "content-type": "application/json"
       }
     });
-    this.fetchLocalUserId();
-    this.getIpAddress();
+    this.getUserId();
   }
 
   /***
    * request new user id from server
    */
-  private async requestUserId(): Promise<UserIdResponse | null> {
+  private async generateUserId(): Promise<IUserIdResponse | null> {
     let userIdResponse = await this.trackingRestClient.post("/u", {collection: this.collectionUniqueId}).catch(x => x.response);
     if (userIdResponse.status === 200) {
-      let userIdBody: UserIdResponse = userIdResponse.data;
+      let userIdBody: IUserIdResponse = userIdResponse.data;
       return userIdBody;
     } else {
-      console.log(`Failed to get UserId for Search client.Received Response: ${userIdResponse.status}`);
+      logger.error(`Failed to get UserId for Search client.Received Response: ${userIdResponse.status}`);
       return null;
     }
   }
 
 
-  public user(userId: string) {
+  public setUser(userId: string) {
     this.localUserId = userId;
     if (typeof window !== 'undefined') {
       this.saveLocalUserIdCookieToBrowser(this.localUserId);
@@ -50,11 +49,11 @@ export = class StAnalyticsClient {
   /***
    * get local user id if exists else create new
    */
-  private async fetchLocalUserId() {
+  private async getUserId() {
     if (typeof window !== 'undefined' && !this.localUserId) {
       this.localUserId = cookies.get(this.localUserCookieKey);
       if (!this.localUserId) {
-        let userIdBody = await this.requestUserId();
+        let userIdBody = await this.generateUserId();
         if (userIdBody) {
           this.saveLocalUserIdCookieToBrowser(userIdBody.data.userId);
           this.localUserId = userIdBody.data.userId;
@@ -79,25 +78,14 @@ export = class StAnalyticsClient {
     });
   }
 
-  /***
-   * get ipv4 address
-   */
-  private async getIpAddress() {
-    let ipAddressResponse = await Axios.get("https://api.ipify.org?format=json")
-      .catch(e => e.response);
-    if (ipAddressResponse.status === 200) {
-      this.ipv4Address = ipAddressResponse.data.ip;
-    } else
-      this.ipv4Address = "0.0.0.0";
-  }
 
   /***
    * assign global properties to be send in each event request
    * @param properties
    */
-  public setGlobalEventProperties(properties: { [prop: string]: any }) {
+  public setGlobalProps(properties: { [prop: string]: any }) {
     if (!JSONHelper.isValidJson(properties))
-      console.error("Invalid data provided for global Event properties");
+      logger.error("Invalid data provided for global Event properties");
     this.globalEventProperties = properties;
   }
 
@@ -107,13 +95,11 @@ export = class StAnalyticsClient {
    * @param eventData
    */
   public async sendEvent(eventName: string, eventData: { [prop: string]: any }) {
-    let analyticsData: AnalyticsData = {
+    let analyticsData: IAnalyticsData = {
       collection: this.collectionUniqueId,
       eventName: eventName,
       eventData: eventData,
-      meta: {
-        ipV4: this.ipv4Address
-      },
+      meta: {},
       timeStamp: new Date().valueOf()
     };
     //give preference to event properties upon global event properties
@@ -124,7 +110,7 @@ export = class StAnalyticsClient {
       }
     }).catch(x => x.response);
     if (trackingResponse.status !== 200)
-      console.log(`Failed to send tracking data.Received Response: ${trackingResponse.status}`);
+      logger.error(`Failed to send tracking data.Received Response: ${trackingResponse.status}`);
   }
 
 }

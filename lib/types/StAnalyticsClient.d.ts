@@ -1,10 +1,9 @@
 import { AxiosInstance } from "axios";
-import { UserIdResponse } from "./domain/UserIdResponse";
+import { IUserIdResponse } from "./domain/IUserIdResponse";
 declare const _default: {
     new (collectionUniqueId: string, searchToken: string): {
         localUserId: string;
         trackingRestClient: AxiosInstance;
-        ipv4Address: string;
         localUserCookieKey: string;
         globalEventProperties: {
             [prop: string]: any;
@@ -14,26 +13,22 @@ declare const _default: {
         /***
          * request new user id from server
          */
-        requestUserId(): Promise<UserIdResponse>;
-        user(userId: string): any;
+        generateUserId(): Promise<IUserIdResponse>;
+        setUser(userId: string): any;
         /***
          * get local user id if exists else create new
          */
-        fetchLocalUserId(): Promise<void>;
+        getUserId(): Promise<void>;
         /***
          * save local user id cookie to browser
          * @param userId
          */
         saveLocalUserIdCookieToBrowser(userId: string): void;
         /***
-         * get ipv4 address
-         */
-        getIpAddress(): Promise<void>;
-        /***
          * assign global properties to be send in each event request
          * @param properties
          */
-        setGlobalEventProperties(properties: {
+        setGlobalProps(properties: {
             [prop: string]: any;
         }): void;
         /***

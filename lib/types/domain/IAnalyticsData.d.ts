@@ -1,7 +1,7 @@
 /***
  * Analytics Data send via API
  */
-export interface AnalyticsData {
+export interface IAnalyticsData {
     collection: string;
     eventName: string;
     eventData: any;
