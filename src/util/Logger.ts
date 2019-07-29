@@ -1,5 +1,5 @@
 let logger: any = {};
-if (process.env.NoDE_ENV === "production") {
+if (process.env.RUN_ENV === "production") {
   logger = {
     error: function (...params) {
     },
@@ -9,9 +9,7 @@ if (process.env.NoDE_ENV === "production") {
     }
   }
 } else {
-
   logger = console;
-
 }
 
 export = logger;

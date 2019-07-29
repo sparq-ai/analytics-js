@@ -103,7 +103,7 @@ export = class StAnalyticsClient {
       timeStamp: new Date().valueOf()
     };
     //give preference to event properties upon global event properties
-    analyticsData.eventData = Object.assign({}, analyticsData.eventData, this.globalEventProperties);
+    analyticsData.eventData = Object.assign({}, this.globalEventProperties, analyticsData.eventData);
     let trackingResponse = await this.trackingRestClient.post("events", analyticsData, {
       headers: {
         "x-st-user": this.localUserId
