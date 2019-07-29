@@ -1,5 +1,5 @@
 {
-  "name": "@searchtap/st-analytics-js",
+  "name": "@searchtap/analytics-js",
   "version": "1.0.0",
   "main": "lib/index.min.js",
   "types": "lib/types/StAnalyticsClient.d.ts",
