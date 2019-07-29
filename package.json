@@ -9,7 +9,7 @@
     "test": "NODE_ENV=test ./node_modules/mocha/bin/_mocha --full-trace --require ts-node/register --exit ./tests/**/*.spec.ts",
     "code-coverage": "NODE_ENV=test nyc --reporter=lcov --reporter=text ./node_modules/mocha/bin/_mocha --full-trace --require ts-node/register --exit ./tests/**/*.spec.ts && cat ./coverage/lcov.info | codacy-coverage && rm -rf ./coverage ./.nyc_output"
   },
-  "private": true,
+  "private": false,
   "author": "tech@searchtap.io",
   "nyc": {
     "extension": [
