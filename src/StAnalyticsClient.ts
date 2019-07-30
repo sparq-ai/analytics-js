@@ -4,6 +4,8 @@ import * as cookies from "browser-cookies";
 import {JSONHelper} from "./util/JSONHelper";
 import {IAnalyticsData} from "./domain/IAnalyticsData";
 import * as logger from "./util/Logger";
+import {SearchResponse} from "./domain/ISearchResponse";
+import Events from "./domain/Events";
 
 
 export = class StAnalyticsClient {
@@ -111,6 +113,39 @@ export = class StAnalyticsClient {
     }).catch(x => x.response);
     if (trackingResponse.status !== 200)
       logger.error(`Failed to send tracking data.Received Response: ${trackingResponse.status}`);
+  }
+
+  searchQuery(searchResponse: SearchResponse, label: string) {
+    let topToResults: any = searchResponse.results.slice(0, Math.min(searchResponse.totalHits, 10)).map((result, index) => {
+      return {
+        rank: index,
+        label: result[label]
+      }
+    });
+
+    return this.sendEvent(Events.searchQuery, {
+      search: {
+        query: searchResponse.query.query,
+        queryId: searchResponse.uniqueId,
+        responseTime: searchResponse.responseTime,
+        totalHits: searchResponse.totalHits,
+        items: topToResults
+      }
+    })
+  }
+
+  emptySearchResults(searchResponse: SearchResponse) {
+    if (searchResponse.totalHits > 0) {
+      console.log("Invalid Event");
+    }
+
+    return this.sendEvent(Events.emptySearchQuery, {
+      search: {
+        query: searchResponse.query.query,
+        queryId: searchResponse.uniqueId,
+        responseTime: searchResponse.responseTime
+      }
+    });
   }
 
 }
