@@ -1,6 +1,6 @@
-export interface SearchResponse {
+export interface ISearchResponse {
   uniqueId: string,
-  query: SearchRequest;
+  query: ISearchRequest;
   results: any[];
   responseTime: number;
   totalHits: number;
@@ -8,7 +8,7 @@ export interface SearchResponse {
   [props: string]: any
 }
 
-export interface SearchRequest {
+export interface ISearchRequest {
   query: string;
   fields: string[];
   textFacets: string[];

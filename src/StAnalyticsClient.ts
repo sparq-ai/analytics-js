@@ -4,7 +4,7 @@ import * as cookies from "browser-cookies";
 import {JSONHelper} from "./util/JSONHelper";
 import {IAnalyticsData} from "./domain/IAnalyticsData";
 import * as logger from "./util/Logger";
-import {SearchResponse} from "./domain/ISearchResponse";
+import {ISearchResponse} from "./domain/ISearchResponse";
 import Events from "./domain/Events";
 
 
@@ -115,7 +115,7 @@ export = class StAnalyticsClient {
       logger.error(`Failed to send tracking data.Received Response: ${trackingResponse.status}`);
   }
 
-  searchQuery(searchResponse: SearchResponse, label: string) {
+  searchQuery(searchResponse: ISearchResponse, label: string) {
     let topToResults: any = searchResponse.results.slice(0, Math.min(searchResponse.totalHits, 10)).map((result, index) => {
       return {
         rank: index,
@@ -134,7 +134,7 @@ export = class StAnalyticsClient {
     })
   }
 
-  emptySearchResults(searchResponse: SearchResponse) {
+  emptySearchResults(searchResponse: ISearchResponse) {
     if (searchResponse.totalHits > 0) {
       console.log("Invalid Event");
     }

@@ -1,6 +1,6 @@
 import { AxiosInstance } from "axios";
 import { IUserIdResponse } from "./domain/IUserIdResponse";
-import { SearchResponse } from "./domain/ISearchResponse";
+import { ISearchResponse } from "./domain/ISearchResponse";
 declare const _default: {
     new (collectionUniqueId: string, searchToken: string): {
         localUserId: string;
@@ -40,8 +40,8 @@ declare const _default: {
         sendEvent(eventName: string, eventData: {
             [prop: string]: any;
         }): Promise<void>;
-        searchQuery(searchResponse: SearchResponse, label: string): Promise<void>;
-        emptySearchResults(searchResponse: SearchResponse): Promise<void>;
+        searchQuery(searchResponse: ISearchResponse, label: string): Promise<void>;
+        emptySearchResults(searchResponse: ISearchResponse): Promise<void>;
     };
 };
 export = _default;
