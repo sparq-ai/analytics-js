@@ -45,7 +45,6 @@ declare const _default: {
             [prop: string]: any;
         }): Promise<void>;
         sendEventToServer(): Promise<void>;
-        sleep(interval: number): Promise<{}>;
         searchQuery(searchResponse: ISearchResponse, label: string): Promise<void>;
         emptySearchResults(searchResponse: ISearchResponse): Promise<void>;
     };

@@ -41,7 +41,11 @@ export = class StAnalyticsClient {
             this.sendEventToServer();
           };
         }
-      }
+      };
+      setTimeout(() => {
+        this.canSendEvents = true;
+        this.sendEventToServer();
+      }, 5000);
     } else {
       // in case of node env, no need to wait
       this.canSendEvents = true;
@@ -135,8 +139,8 @@ export = class StAnalyticsClient {
   }
 
   private async sendEventToServer() {
-    while (!this.canSendEvents) {
-      await this.sleep(100);
+    if (!this.canSendEvents) {
+      return;
     }
     while (this.cachedEvents.length) {
       let trackingResponse = await this.trackingRestClient.post("events", this.cachedEvents.shift(), {
@@ -148,14 +152,6 @@ export = class StAnalyticsClient {
         logger.error(`Failed to send tracking data.Received Response: ${trackingResponse.status}`);
     }
 
-  }
-
-  private sleep(interval: number) {
-    return new Promise((res) => {
-      setTimeout(() => {
-        return res();
-      }, interval);
-    })
   }
 
 
