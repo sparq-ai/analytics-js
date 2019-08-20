@@ -16,7 +16,11 @@ declare const _default: {
         isSendingData: boolean;
         collectionUniqueId: string;
         searchToken: string;
-        setPollInterval(interval: number): void;
+        /***
+         * set interval to send analytics data
+         * @param interval
+         */
+        setPollInterval(interval: number): Promise<void>;
         /***
          * request new user id from server
          */
@@ -39,17 +43,21 @@ declare const _default: {
             [prop: string]: any;
         }): void;
         /***
-         * send event to server
+         * send event to server with polling
          * @param eventName
          * @param eventData
          */
         sendEvent(eventName: string, eventData: {
             [prop: string]: any;
-        }): Promise<void>;
+        }): void;
+        sendCachedEvents(): Promise<void>;
+        /***
+         * fn to set cached events to server
+         */
         pollEvents(): Promise<void>;
         sleep(interval: number): Promise<{}>;
-        searchQuery(searchResponse: ISearchResponse, label: string): Promise<void>;
-        emptySearchResults(searchResponse: ISearchResponse): Promise<void>;
+        searchQuery(searchResponse: ISearchResponse, label: string): void;
+        emptySearchResults(searchResponse: ISearchResponse): void;
     };
 };
 export = _default;

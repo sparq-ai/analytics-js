@@ -31,7 +31,7 @@ export = class StAnalyticsClient {
   }
 
   /***
-   * set interval to sendd analytics data
+   * set interval to send analytics data
    * @param interval
    */
   public async setPollInterval(interval: number) {
@@ -107,11 +107,11 @@ export = class StAnalyticsClient {
   }
 
   /***
-   * send event to server
+   * send event to server with polling
    * @param eventName
    * @param eventData
    */
-  public async sendEvent(eventName: string, eventData: { [prop: string]: any }) {
+  public sendEvent(eventName: string, eventData: { [prop: string]: any }) {
     let analyticsData: IAnalyticsData = {
       collection: this.collectionUniqueId,
       eventName: eventName,
@@ -124,6 +124,28 @@ export = class StAnalyticsClient {
     this.events.push(analyticsData);
   }
 
+
+  async sendCachedEvents() {
+    while (this.isSendingData)
+      await this.sleep(100);
+
+    if (!this.isSendingData && this.events.length) {
+      //there is possibility that more events get added while we are sending data so use slice and send data
+      //clear events whether response is success or failure
+      //remove first n elements from array
+      this.isSendingData = true;
+      let trackingResponse = await this.trackingRestClient.post("events", this.events.splice(0, this.events.length), {
+        headers: {
+          "x-st-user": this.localUserId
+        }
+      }).catch(x => x.response);
+
+      if (trackingResponse.status !== 200)
+        logger.error(`Failed to send tracking data.Received Response: ${trackingResponse.status}`);
+      this.isSendingData = false;
+    }
+  }
+
   /***
    * fn to set cached events to server
    */
@@ -131,29 +153,13 @@ export = class StAnalyticsClient {
     //wait if we are already in between sendind data to server
 
     while (this.isSendingData)
-      await this.sleep(1000);
+      await this.sleep(100);
 
     if (this.pollInterval)
       clearTimeout(this.pollInterval);
 
     this.pollInterval = setInterval(async () => {
-      if (!this.isSendingData && this.events.length) {
-        //there is possibility that more events get added while we are sending data so use slice and send data
-        //clear events whether response is success or failure
-        //remove first n elements from array
-        this.isSendingData = true;
-        let trackingResponse = await this.trackingRestClient.post("events", this.events.splice(0, this.events.length), {
-          headers: {
-            "x-st-user": this.localUserId
-          }
-        }).catch(x => x.response);
-
-
-        if (trackingResponse.status !== 200)
-          logger.error(`Failed to send tracking data.Received Response: ${trackingResponse.status}`);
-        this.isSendingData = false;
-      }
-
+      await this.sendCachedEvents();
     }, this.pollIntervalLimit);
   }
 
