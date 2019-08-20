@@ -1,5 +1,6 @@
 import { AxiosInstance } from "axios";
 import { IUserIdResponse } from "./domain/IUserIdResponse";
+import { IAnalyticsData } from "./domain/IAnalyticsData";
 import { ISearchResponse } from "./domain/ISearchResponse";
 declare const _default: {
     new (collectionUniqueId: string, searchToken: string): {
@@ -9,8 +10,11 @@ declare const _default: {
         globalEventProperties: {
             [prop: string]: any;
         };
+        cachedEvents: IAnalyticsData[];
+        canSendEvents: boolean;
         collectionUniqueId: string;
         searchToken: string;
+        waitForLoad(): void;
         /***
          * request new user id from server
          */
@@ -40,6 +44,8 @@ declare const _default: {
         sendEvent(eventName: string, eventData: {
             [prop: string]: any;
         }): Promise<void>;
+        sendEventToServer(): Promise<void>;
+        sleep(interval: number): Promise<{}>;
         searchQuery(searchResponse: ISearchResponse, label: string): Promise<void>;
         emptySearchResults(searchResponse: ISearchResponse): Promise<void>;
     };

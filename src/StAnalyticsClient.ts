@@ -13,6 +13,8 @@ export = class StAnalyticsClient {
   private trackingRestClient!: AxiosInstance;
   private localUserCookieKey = "uId";
   private globalEventProperties: { [prop: string]: any };
+  private cachedEvents: IAnalyticsData[] = [];
+  private canSendEvents: boolean = false;
 
   constructor(private collectionUniqueId: string, private searchToken: string) {
     this.trackingRestClient = Axios.create({
@@ -23,7 +25,29 @@ export = class StAnalyticsClient {
       }
     });
     this.getUserId();
+    this.waitForLoad();
   }
+
+
+  private waitForLoad() {
+    if (typeof window !== 'undefined') {
+      document.onreadystatechange = () => {
+        if (document.readyState === "complete") {
+          this.canSendEvents = true;
+          this.sendEventToServer();
+        } else {
+          window.onload = () => {
+            this.canSendEvents = true;
+            this.sendEventToServer();
+          };
+        }
+      }
+    } else {
+      // in case of node env, no need to wait
+      this.canSendEvents = true;
+    }
+  }
+
 
   /***
    * request new user id from server
@@ -106,14 +130,34 @@ export = class StAnalyticsClient {
     };
     //give preference to event properties upon global event properties
     analyticsData.eventData = Object.assign({}, this.globalEventProperties, analyticsData.eventData);
-    let trackingResponse = await this.trackingRestClient.post("events", analyticsData, {
-      headers: {
-        "x-st-user": this.localUserId
-      }
-    }).catch(x => x.response);
-    if (trackingResponse.status !== 200)
-      logger.error(`Failed to send tracking data.Received Response: ${trackingResponse.status}`);
+    this.cachedEvents.push(analyticsData);
+    await this.sendEventToServer();
   }
+
+  private async sendEventToServer() {
+    while (!this.canSendEvents) {
+      await this.sleep(100);
+    }
+    while (this.cachedEvents.length) {
+      let trackingResponse = await this.trackingRestClient.post("events", this.cachedEvents.shift(), {
+        headers: {
+          "x-st-user": this.localUserId
+        }
+      }).catch(x => x.response);
+      if (trackingResponse.status !== 200)
+        logger.error(`Failed to send tracking data.Received Response: ${trackingResponse.status}`);
+    }
+
+  }
+
+  private sleep(interval: number) {
+    return new Promise((res) => {
+      setTimeout(() => {
+        return res();
+      }, interval);
+    })
+  }
+
 
   searchQuery(searchResponse: ISearchResponse, label: string) {
     let topToResults: any = searchResponse.results.slice(0, Math.min(searchResponse.totalHits, 10)).map((result, index) => {
