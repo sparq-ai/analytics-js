@@ -1,5 +1,6 @@
 import { AxiosInstance } from "axios";
 import { IUserIdResponse } from "./domain/IUserIdResponse";
+import { IAnalyticsData } from "./domain/IAnalyticsData";
 import { ISearchResponse } from "./domain/ISearchResponse";
 declare const _default: {
     new (collectionUniqueId: string, searchToken: string): {
@@ -9,8 +10,13 @@ declare const _default: {
         globalEventProperties: {
             [prop: string]: any;
         };
+        events: IAnalyticsData[];
+        pollIntervalLimit: number;
+        pollInterval: any;
+        isSendingData: boolean;
         collectionUniqueId: string;
         searchToken: string;
+        setPollInterval(interval: number): void;
         /***
          * request new user id from server
          */
@@ -40,6 +46,8 @@ declare const _default: {
         sendEvent(eventName: string, eventData: {
             [prop: string]: any;
         }): Promise<void>;
+        pollEvents(): Promise<void>;
+        sleep(interval: number): Promise<{}>;
         searchQuery(searchResponse: ISearchResponse, label: string): Promise<void>;
         emptySearchResults(searchResponse: ISearchResponse): Promise<void>;
     };
