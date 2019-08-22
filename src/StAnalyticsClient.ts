@@ -13,6 +13,8 @@ export = class StAnalyticsClient {
   private trackingRestClient!: AxiosInstance;
   private localUserCookieKey = "uId";
   private globalEventProperties: { [prop: string]: any };
+  private cachedEvents: IAnalyticsData[] = [];
+  private canSendEvents: boolean = false;
 
   constructor(private collectionUniqueId: string, private searchToken: string) {
     this.trackingRestClient = Axios.create({
@@ -23,7 +25,36 @@ export = class StAnalyticsClient {
       }
     });
     this.getUserId();
+    this.waitForLoad();
   }
+
+
+  private waitForLoad() {
+    if (typeof window !== 'undefined') {
+      document.onreadystatechange = () => {
+        if (document.readyState === "complete") {
+          this.startProcessingCachedEvents();
+        } else {
+          window.onload = () => {
+            this.startProcessingCachedEvents();
+          };
+        }
+      };
+      setTimeout(() => {
+        this.startProcessingCachedEvents();
+      }, 5000);
+    } else {
+      this.startProcessingCachedEvents();
+    }
+  }
+
+  private startProcessingCachedEvents() {
+    if (!this.canSendEvents) {
+      this.canSendEvents = true;
+      this.processCachedEvents();
+    }
+  }
+
 
   /***
    * request new user id from server
@@ -106,7 +137,23 @@ export = class StAnalyticsClient {
     };
     //give preference to event properties upon global event properties
     analyticsData.eventData = Object.assign({}, this.globalEventProperties, analyticsData.eventData);
-    let trackingResponse = await this.trackingRestClient.post("events", analyticsData, {
+    if (this.canSendEvents)
+      await this.sendEventToServer(analyticsData);
+    else {
+      this.cachedEvents.push(analyticsData);
+    }
+
+  }
+
+
+  private async processCachedEvents() {
+    while (this.cachedEvents.length) {
+      await this.sendEventToServer(this.cachedEvents.shift())
+    }
+  }
+
+  private async sendEventToServer(event: IAnalyticsData) {
+    let trackingResponse = await this.trackingRestClient.post("events", event, {
       headers: {
         "x-st-user": this.localUserId
       }
@@ -114,6 +161,7 @@ export = class StAnalyticsClient {
     if (trackingResponse.status !== 200)
       logger.error(`Failed to send tracking data.Received Response: ${trackingResponse.status}`);
   }
+
 
   searchQuery(searchResponse: ISearchResponse, label: string) {
     let topToResults: any = searchResponse.results.slice(0, Math.min(searchResponse.totalHits, 10)).map((result, index) => {
