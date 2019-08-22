@@ -15,6 +15,7 @@ declare const _default: {
         collectionUniqueId: string;
         searchToken: string;
         waitForLoad(): void;
+        startProcessingCachedEvents(): void;
         /***
          * request new user id from server
          */
@@ -44,7 +45,8 @@ declare const _default: {
         sendEvent(eventName: string, eventData: {
             [prop: string]: any;
         }): Promise<void>;
-        sendEventToServer(): Promise<void>;
+        processCachedEvents(): Promise<void>;
+        sendEventToServer(event: IAnalyticsData): Promise<void>;
         searchQuery(searchResponse: ISearchResponse, label: string): Promise<void>;
         emptySearchResults(searchResponse: ISearchResponse): Promise<void>;
     };

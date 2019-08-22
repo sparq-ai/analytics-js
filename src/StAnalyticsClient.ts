@@ -33,22 +33,25 @@ export = class StAnalyticsClient {
     if (typeof window !== 'undefined') {
       document.onreadystatechange = () => {
         if (document.readyState === "complete") {
-          this.canSendEvents = true;
-          this.sendEventToServer();
+          this.startProcessingCachedEvents();
         } else {
           window.onload = () => {
-            this.canSendEvents = true;
-            this.sendEventToServer();
+            this.startProcessingCachedEvents();
           };
         }
       };
       setTimeout(() => {
-        this.canSendEvents = true;
-        this.sendEventToServer();
+        this.startProcessingCachedEvents();
       }, 5000);
     } else {
-      // in case of node env, no need to wait
+      this.startProcessingCachedEvents();
+    }
+  }
+
+  private startProcessingCachedEvents() {
+    if (!this.canSendEvents) {
       this.canSendEvents = true;
+      this.processCachedEvents();
     }
   }
 
@@ -134,24 +137,29 @@ export = class StAnalyticsClient {
     };
     //give preference to event properties upon global event properties
     analyticsData.eventData = Object.assign({}, this.globalEventProperties, analyticsData.eventData);
-    this.cachedEvents.push(analyticsData);
-    await this.sendEventToServer();
+    if (this.canSendEvents)
+      await this.sendEventToServer(analyticsData);
+    else {
+      this.cachedEvents.push(analyticsData);
+    }
+
   }
 
-  private async sendEventToServer() {
-    if (!this.canSendEvents) {
-      return;
-    }
-    while (this.cachedEvents.length) {
-      let trackingResponse = await this.trackingRestClient.post("events", this.cachedEvents.shift(), {
-        headers: {
-          "x-st-user": this.localUserId
-        }
-      }).catch(x => x.response);
-      if (trackingResponse.status !== 200)
-        logger.error(`Failed to send tracking data.Received Response: ${trackingResponse.status}`);
-    }
 
+  private async processCachedEvents() {
+    while (this.cachedEvents.length) {
+      await this.sendEventToServer(this.cachedEvents.shift())
+    }
+  }
+
+  private async sendEventToServer(event: IAnalyticsData) {
+    let trackingResponse = await this.trackingRestClient.post("events", event, {
+      headers: {
+        "x-st-user": this.localUserId
+      }
+    }).catch(x => x.response);
+    if (trackingResponse.status !== 200)
+      logger.error(`Failed to send tracking data.Received Response: ${trackingResponse.status}`);
   }
 
 
