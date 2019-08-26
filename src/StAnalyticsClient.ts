@@ -103,8 +103,8 @@ export = class StAnalyticsClient {
       if (!this.localUserId) {
         let userIdBody = await this.generateUserId();
         if (userIdBody) {
-          this.saveLocalUserIdCookieToBrowser(userIdBody.data.userId);
           this.localUserId = userIdBody.data.userId;
+          this.saveLocalUserIdCookieToBrowser(userIdBody.data.userId);
         }
       } else {
         //re-initialize cookie
