@@ -11,7 +11,9 @@ declare const _default: {
             [prop: string]: any;
         };
         cachedEvents: IAnalyticsData[];
-        canSendEvents: boolean;
+        isPageLoaded: boolean;
+        userIdLoadThreshold: number;
+        isUserIdThresholdCompleted: boolean;
         collectionUniqueId: string;
         searchToken: string;
         waitForLoad(): void;
@@ -45,6 +47,7 @@ declare const _default: {
         sendEvent(eventName: string, eventData: {
             [prop: string]: any;
         }): Promise<void>;
+        canSendEventToServer(): boolean;
         processCachedEvents(): Promise<void>;
         sendEventToServer(event: IAnalyticsData): Promise<void>;
         searchQuery(searchResponse: ISearchResponse, label: string): Promise<void>;

@@ -14,7 +14,9 @@ export = class StAnalyticsClient {
   private localUserCookieKey = "uId";
   private globalEventProperties: { [prop: string]: any };
   private cachedEvents: IAnalyticsData[] = [];
-  private canSendEvents: boolean = false;
+  private isPageLoaded: boolean = false;
+  private userIdLoadThreshold: number = 5000;
+  private isUserIdThresholdCompleted: boolean = false;
 
   constructor(private collectionUniqueId: string, private searchToken: string) {
     this.trackingRestClient = Axios.create({
@@ -33,24 +35,27 @@ export = class StAnalyticsClient {
     if (typeof window !== 'undefined') {
       document.onreadystatechange = () => {
         if (document.readyState === "complete") {
+          this.isPageLoaded = true;
           this.startProcessingCachedEvents();
         } else {
           window.onload = () => {
+            this.isPageLoaded = true;
             this.startProcessingCachedEvents();
           };
         }
       };
       setTimeout(() => {
+        this.isPageLoaded = true;
         this.startProcessingCachedEvents();
       }, 5000);
     } else {
+      this.isPageLoaded = true;
       this.startProcessingCachedEvents();
     }
   }
 
   private startProcessingCachedEvents() {
-    if (!this.canSendEvents) {
-      this.canSendEvents = true;
+    if (this.canSendEventToServer()) {
       this.processCachedEvents();
     }
   }
@@ -75,6 +80,9 @@ export = class StAnalyticsClient {
     this.localUserId = userId;
     if (typeof window !== 'undefined') {
       this.saveLocalUserIdCookieToBrowser(this.localUserId);
+    } else {
+      this.isUserIdThresholdCompleted = true;
+      this.startProcessingCachedEvents();
     }
     return this;
   }
@@ -83,6 +91,13 @@ export = class StAnalyticsClient {
    * get local user id if exists else create new
    */
   private async getUserId() {
+
+    //wait for max userIdLoadThreshold interval for userId to get loaded
+    setInterval(() => {
+      this.isUserIdThresholdCompleted = true;
+      this.startProcessingCachedEvents();
+    }, this.userIdLoadThreshold);
+
     if (typeof window !== 'undefined' && !this.localUserId) {
       this.localUserId = cookies.get(this.localUserCookieKey);
       if (!this.localUserId) {
@@ -97,6 +112,8 @@ export = class StAnalyticsClient {
       }
     } else {
       this.localUserId = require('os').hostname();
+      this.isUserIdThresholdCompleted = true;
+      this.startProcessingCachedEvents();
     }
   }
 
@@ -109,6 +126,8 @@ export = class StAnalyticsClient {
       path: "/",
       expires: 367 * 2
     });
+    this.isUserIdThresholdCompleted = true;
+    this.startProcessingCachedEvents();
   }
 
 
@@ -137,12 +156,16 @@ export = class StAnalyticsClient {
     };
     //give preference to event properties upon global event properties
     analyticsData.eventData = Object.assign({}, this.globalEventProperties, analyticsData.eventData);
-    if (this.canSendEvents)
+    if (this.canSendEventToServer())
       await this.sendEventToServer(analyticsData);
     else {
       this.cachedEvents.push(analyticsData);
     }
 
+  }
+
+  private canSendEventToServer(): boolean {
+    return this.isPageLoaded && this.isUserIdThresholdCompleted;
   }
 
 
