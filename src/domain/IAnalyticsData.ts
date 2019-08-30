@@ -3,6 +3,7 @@
  */
 export interface IAnalyticsData {
   collection: string;
+  app: string;
   eventName: string;
   eventData: any;
   meta: {

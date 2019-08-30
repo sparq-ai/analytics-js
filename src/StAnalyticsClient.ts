@@ -18,7 +18,7 @@ export = class StAnalyticsClient {
   private userIdLoadThreshold: number = 5000;
   private isUserIdThresholdCompleted: boolean = false;
 
-  constructor(private collectionUniqueId: string, private searchToken: string) {
+  constructor(private appUniqueId: string, private searchToken: string) {
     this.trackingRestClient = Axios.create({
       baseURL: process.env.ST_TRACKING_SERVER,
       headers: {
@@ -65,7 +65,7 @@ export = class StAnalyticsClient {
    * request new user id from server
    */
   private async generateUserId(): Promise<IUserIdResponse | null> {
-    let userIdResponse = await this.trackingRestClient.post("/u", {collection: this.collectionUniqueId}).catch(x => x.response);
+    let userIdResponse = await this.trackingRestClient.post("/u", {app: this.appUniqueId}).catch(x => x.response);
     if (userIdResponse.status === 200) {
       let userIdBody: IUserIdResponse = userIdResponse.data;
       return userIdBody;
@@ -146,9 +146,10 @@ export = class StAnalyticsClient {
    * @param eventName
    * @param eventData
    */
-  public async sendEvent(eventName: string, eventData: { [prop: string]: any }) {
+  public async sendEvent(eventName: string, eventData: { [prop: string]: any }, collectionUniqueId?: string) {
     let analyticsData: IAnalyticsData = {
-      collection: this.collectionUniqueId,
+      collection: collectionUniqueId,
+      app: this.appUniqueId,
       eventName: eventName,
       eventData: eventData,
       meta: {},
@@ -186,7 +187,7 @@ export = class StAnalyticsClient {
   }
 
 
-  searchQuery(searchResponse: ISearchResponse, label: string) {
+  searchQuery(searchResponse: ISearchResponse, label: string, collectionUniqueId?: string) {
     let topToResults: any = searchResponse.results.slice(0, Math.min(searchResponse.totalHits, 10)).map((result, index) => {
       return {
         rank: index,
@@ -202,10 +203,10 @@ export = class StAnalyticsClient {
         totalHits: searchResponse.totalHits,
         items: topToResults
       }
-    })
+    }, collectionUniqueId)
   }
 
-  emptySearchResults(searchResponse: ISearchResponse) {
+  emptySearchResults(searchResponse: ISearchResponse, isFilterApplied: boolean, collectionUniqueId?: string) {
     if (searchResponse.totalHits > 0) {
       console.log("Invalid Event");
     }
@@ -214,9 +215,11 @@ export = class StAnalyticsClient {
       search: {
         query: searchResponse.query.query,
         queryId: searchResponse.uniqueId,
-        responseTime: searchResponse.responseTime
+        responseTime: searchResponse.responseTime,
+        //false if undefined
+        isFilterApplied: isFilterApplied ? isFilterApplied : false
       }
-    });
+    }, collectionUniqueId);
   }
 
 }
