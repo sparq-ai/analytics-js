@@ -3,7 +3,7 @@ import { IUserIdResponse } from "./domain/IUserIdResponse";
 import { IAnalyticsData } from "./domain/IAnalyticsData";
 import { ISearchResponse } from "./domain/ISearchResponse";
 declare const _default: {
-    new (appUniqueId: string, searchToken: string, collectionUniqueId?: string): {
+    new (appUniqueId: string, searchToken: string): {
         localUserId: string;
         trackingRestClient: AxiosInstance;
         localUserCookieKey: string;
@@ -16,7 +16,6 @@ declare const _default: {
         isUserIdThresholdCompleted: boolean;
         appUniqueId: string;
         searchToken: string;
-        collectionUniqueId?: string;
         waitForLoad(): void;
         startProcessingCachedEvents(): void;
         /***
@@ -47,12 +46,12 @@ declare const _default: {
          */
         sendEvent(eventName: string, eventData: {
             [prop: string]: any;
-        }): Promise<void>;
+        }, collectionUniqueId?: string): Promise<void>;
         canSendEventToServer(): boolean;
         processCachedEvents(): Promise<void>;
         sendEventToServer(event: IAnalyticsData): Promise<void>;
-        searchQuery(searchResponse: ISearchResponse, label: string): Promise<void>;
-        emptySearchResults(searchResponse: ISearchResponse, isFilterApplied: boolean): Promise<void>;
+        searchQuery(searchResponse: ISearchResponse, label: string, collectionUniqueId?: string): Promise<void>;
+        emptySearchResults(searchResponse: ISearchResponse, isFilterApplied: boolean, collectionUniqueId?: string): Promise<void>;
     };
 };
 export = _default;
