@@ -217,7 +217,7 @@ export = class StAnalyticsClient {
         queryId: searchResponse.uniqueId,
         responseTime: searchResponse.responseTime,
         //false if undefined
-        isFilterApplied:isFilterApplied?isFilterApplied:false
+        isFilterApplied: isFilterApplied ? isFilterApplied : false
       }
     });
   }
