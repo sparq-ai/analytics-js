@@ -18,7 +18,7 @@ export = class StAnalyticsClient {
   private userIdLoadThreshold: number = 5000;
   private isUserIdThresholdCompleted: boolean = false;
 
-  constructor(private collectionUniqueId: string, private searchToken: string) {
+  constructor(private appUniqueId: string, private searchToken: string, private collectionUniqueId?: string) {
     this.trackingRestClient = Axios.create({
       baseURL: process.env.ST_TRACKING_SERVER,
       headers: {
@@ -149,6 +149,7 @@ export = class StAnalyticsClient {
   public async sendEvent(eventName: string, eventData: { [prop: string]: any }) {
     let analyticsData: IAnalyticsData = {
       collection: this.collectionUniqueId,
+      app: this.appUniqueId,
       eventName: eventName,
       eventData: eventData,
       meta: {},
@@ -205,7 +206,7 @@ export = class StAnalyticsClient {
     })
   }
 
-  emptySearchResults(searchResponse: ISearchResponse) {
+  emptySearchResults(searchResponse: ISearchResponse, isFilterApplied: boolean) {
     if (searchResponse.totalHits > 0) {
       console.log("Invalid Event");
     }
@@ -214,7 +215,9 @@ export = class StAnalyticsClient {
       search: {
         query: searchResponse.query.query,
         queryId: searchResponse.uniqueId,
-        responseTime: searchResponse.responseTime
+        responseTime: searchResponse.responseTime,
+        //false if undefined
+        isFilterApplied:isFilterApplied?isFilterApplied:false
       }
     });
   }
