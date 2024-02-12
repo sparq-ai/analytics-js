@@ -8,7 +8,7 @@ import {ISearchResponse} from "./domain/ISearchResponse";
 import Events from "./domain/Events";
 
 
-export = class StAnalyticsClient {
+export class StAnalyticsClient {
   private localUserId: string;
   private trackingRestClient!: AxiosInstance;
   private localUserCookieKey = "uId";
