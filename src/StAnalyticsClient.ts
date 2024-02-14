@@ -8,17 +8,17 @@ import {ISearchResponse} from "./domain/ISearchResponse";
 import Events from "./domain/Events";
 
 
-export class StAnalyticsClient {
-  private localUserId: string;
-  private trackingRestClient!: AxiosInstance;
-  private localUserCookieKey = "uId";
-  private globalEventProperties: { [prop: string]: any };
-  private cachedEvents: IAnalyticsData[] = [];
-  private isPageLoaded: boolean = false;
-  private userIdLoadThreshold: number = 5000;
-  private isUserIdThresholdCompleted: boolean = false;
+export = class StAnalyticsClient {
+  public localUserId: string;
+  public trackingRestClient!: AxiosInstance;
+  public localUserCookieKey = "uId";
+  public globalEventProperties: { [prop: string]: any };
+  public cachedEvents: IAnalyticsData[] = [];
+  public isPageLoaded: boolean = false;
+  public userIdLoadThreshold: number = 5000;
+  public isUserIdThresholdCompleted: boolean = false;
 
-  constructor(private appUniqueId: string, private searchToken: string) {
+  constructor(public appUniqueId: string, public searchToken: string) {
     this.trackingRestClient = Axios.create({
       baseURL: process.env.ST_TRACKING_SERVER,
       headers: {
@@ -31,7 +31,7 @@ export class StAnalyticsClient {
   }
 
 
-  private waitForLoad() {
+  public waitForLoad() {
     if (typeof window !== 'undefined') {
       document.onreadystatechange = () => {
         if (document.readyState === "complete") {
@@ -54,7 +54,7 @@ export class StAnalyticsClient {
     }
   }
 
-  private startProcessingCachedEvents() {
+  public startProcessingCachedEvents() {
     if (this.canSendEventToServer()) {
       this.processCachedEvents();
     }
@@ -64,7 +64,7 @@ export class StAnalyticsClient {
   /***
    * request new user id from server
    */
-  private async generateUserId(): Promise<IUserIdResponse | null> {
+  public async generateUserId(): Promise<IUserIdResponse | null> {
     let userIdResponse = await this.trackingRestClient.post("/u", {app: this.appUniqueId}).catch(x => x.response);
     if (userIdResponse.status === 200) {
       let userIdBody: IUserIdResponse = userIdResponse.data;
@@ -90,7 +90,7 @@ export class StAnalyticsClient {
   /***
    * get local user id if exists else create new
    */
-  private async getUserId() {
+  public async getUserId() {
 
     //wait for max userIdLoadThreshold interval for userId to get loaded
     setInterval(() => {
@@ -121,7 +121,7 @@ export class StAnalyticsClient {
    * save local user id cookie to browser
    * @param userId
    */
-  private saveLocalUserIdCookieToBrowser(userId: string) {
+  public saveLocalUserIdCookieToBrowser(userId: string) {
     cookies.set(this.localUserCookieKey, userId, {
       path: "/",
       expires: 367 * 2
@@ -165,18 +165,18 @@ export class StAnalyticsClient {
 
   }
 
-  private canSendEventToServer(): boolean {
+  public canSendEventToServer(): boolean {
     return this.isPageLoaded && this.isUserIdThresholdCompleted;
   }
 
 
-  private async processCachedEvents() {
+  public async processCachedEvents() {
     while (this.cachedEvents.length) {
       await this.sendEventToServer(this.cachedEvents.shift())
     }
   }
 
-  private async sendEventToServer(event: IAnalyticsData) {
+  public async sendEventToServer(event: IAnalyticsData) {
     let trackingResponse = await this.trackingRestClient.post("events", event, {
       headers: {
         "x-st-user": this.localUserId
