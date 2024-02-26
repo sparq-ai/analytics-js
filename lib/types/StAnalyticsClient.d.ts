@@ -21,7 +21,7 @@ declare const _default: {
         /***
          * request new user id from server
          */
-        generateUserId(): Promise<IUserIdResponse>;
+        generateUserId(): Promise<IUserIdResponse | null>;
         setUser(userId: string): any;
         /***
          * get local user id if exists else create new
