@@ -10,6 +10,7 @@
     "code-coverage": "NODE_ENV=test nyc --reporter=lcov --reporter=text ./node_modules/mocha/bin/_mocha --full-trace --require ts-node/register --exit ./tests/**/*.spec.ts && cat ./coverage/lcov.info | codacy-coverage && rm -rf ./coverage ./.nyc_output"
   },
   "private": false,
+  "repository": "https://github.com/sparq-ai/analytics-js",
   "author": "tech@sparq.ai",
   "nyc": {
     "extension": [
