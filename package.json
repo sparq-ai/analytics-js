@@ -1,6 +1,6 @@
 {
-  "name": "@searchtap/analytics-js",
-  "version": "1.0.7",
+  "name": "@sparq/analytics-js",
+  "version": "1.1.2",
   "main": "lib/index.min.js",
   "types": "lib/types/StAnalyticsClient.d.ts",
   "scripts": {
@@ -10,7 +10,7 @@
     "code-coverage": "NODE_ENV=test nyc --reporter=lcov --reporter=text ./node_modules/mocha/bin/_mocha --full-trace --require ts-node/register --exit ./tests/**/*.spec.ts && cat ./coverage/lcov.info | codacy-coverage && rm -rf ./coverage ./.nyc_output"
   },
   "private": false,
-  "author": "tech@searchtap.io",
+  "author": "tech@sparq.ai",
   "nyc": {
     "extension": [
       ".ts",
@@ -28,8 +28,8 @@
   "devDependencies": {
     "dotenv": "^8.0.0",
     "@types/chai": "^4.1.2",
-    "@types/node": "^10.5.1",
-    "awesome-typescript-loader": "^5.2.0",
+    "@types/node": "^20.0.0",
+    "ts-loader": "^8.4.0",
     "chai": "^4.1.2",
     "codacy-coverage": "^3.0.0",
     "dotenv-webpack": "^1.7.0",
@@ -39,7 +39,7 @@
     "nock": "^9.5.0",
     "nyc": "^12.0.2",
     "ts-node": "^7.0.0",
-    "typescript": "^2.9.2",
+    "typescript": "^5.0.0",
     "webpack": "^4.15.0",
     "webpack-cli": "^3.0.8"
   }
