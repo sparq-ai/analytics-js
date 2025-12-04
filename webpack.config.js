@@ -11,10 +11,12 @@ let baseCfg = {
   module: {
     rules: [{
       test: /\.tsx?$/,
-      loader: "awesome-typescript-loader",
+      loader: "ts-loader",
       exclude: /node_modules/,
-      query: {
-        declaration: false,
+      options: {
+        compilerOptions: {
+          declaration: false,
+        }
       }
     }]
   },
