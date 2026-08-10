@@ -65,6 +65,16 @@ export class SparqInsights {
 
   constructor(readonly config: InsightsConfig) {
     this.client = new WireClient(config);
+    this.client.consent = config.consent ?? defaultConsent;
+  }
+
+  /**
+   * Grant or revoke tracking consent at runtime (wire this to your cookie
+   * banner). While revoked, no events are sent and no cookie is written.
+   */
+  setConsent(granted: boolean): this {
+    this.client.consent = granted;
+    return this;
   }
 
   /** Override the anonymous visitor id (e.g. with your own logged-in user key). */
@@ -200,6 +210,18 @@ export class SparqInsights {
 // confirmation snippets) report purchases after a one-line configure ─────────
 
 let singleton: SparqInsights | null = null;
+let defaultConsent = true;
+
+/**
+ * Module-level consent switch: applies to the current singleton and becomes
+ * the default for instances created afterwards. Call setTrackingConsent(false)
+ * before configureInsights() to start in the denied state (e.g. while the
+ * cookie banner is unanswered), then setTrackingConsent(true) on acceptance.
+ */
+export function setTrackingConsent(granted: boolean): void {
+  defaultConsent = granted;
+  singleton?.setConsent(granted);
+}
 
 /**
  * Idempotent for identical config — reconfiguring with the same values

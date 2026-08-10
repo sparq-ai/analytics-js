@@ -17,6 +17,13 @@ export interface InsightsConfig {
   collection?: string;
   /** Override the tracking endpoint (staging / self-hosted). No trailing slash. */
   trackingHost?: string;
+  /**
+   * Tracking consent. When false, no events are sent and no cookie is
+   * written — wire this to your consent manager and flip it with
+   * setConsent(true) once the shopper accepts. Defaults to the module-level
+   * default (true unless setTrackingConsent(false) ran first).
+   */
+  consent?: boolean;
 }
 
 const DEFAULT_HOST = 'https://events.sparq.ai/v2';
@@ -55,6 +62,8 @@ export class WireClient {
   private explicitUserId: string | null = null;
   /** Merged under every event's data (event's own fields win). */
   globalProps: Record<string, unknown> = {};
+  /** When false: send() is a no-op and no cookie is ever written. */
+  consent = true;
 
   constructor(private cfg: InsightsConfig) {
     this.host = (cfg.trackingHost ?? DEFAULT_HOST).replace(/\/$/, '');
@@ -62,7 +71,7 @@ export class WireClient {
 
   setUser(userId: string): void {
     this.explicitUserId = userId;
-    writeCookie(UID_COOKIE, userId, UID_TTL_DAYS);
+    if (this.consent) writeCookie(UID_COOKIE, userId, UID_TTL_DAYS);
   }
 
   /** Stable pseudonymous visitor id (cookie-persisted, v1-compatible). */
@@ -71,13 +80,13 @@ export class WireClient {
     let id = readCookie(UID_COOKIE);
     if (!id) id = randomId();
     // Re-write on every read to slide the expiry, like v1 did.
-    writeCookie(UID_COOKIE, id, UID_TTL_DAYS);
+    if (this.consent) writeCookie(UID_COOKIE, id, UID_TTL_DAYS);
     return id;
   }
 
   /** Fire-and-forget. Never throws, never blocks the host page. */
   send(eventName: string, eventData: Record<string, unknown>, collection?: string): void {
-    if (typeof window === 'undefined') return;
+    if (typeof window === 'undefined' || !this.consent) return;
     const body = JSON.stringify({
       app: this.cfg.appId,
       collection: collection ?? this.cfg.collection,

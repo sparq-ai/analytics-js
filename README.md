@@ -49,6 +49,8 @@ Sessions (`search-session`), per-search dedupe, the 1-hour click→purchase attr
 
 For pages without your own instance (e.g. a confirmation-page snippet): `configureInsights(cfg)` once, then `trackPurchase(order)`.
 
+**Consent:** pass `consent: false` in the config (or call `setTrackingConsent(false)` before configuring) to start in the denied state — no events are sent and no cookie is written until `setConsent(true)` / `setTrackingConsent(true)` runs, e.g. from your cookie banner's accept handler.
+
 ## v1 compatibility
 
 The v1 surface still works unchanged:

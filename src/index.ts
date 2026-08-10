@@ -15,6 +15,7 @@ export {
   SparqInsights,
   configureInsights,
   getInsights,
+  setTrackingConsent,
   trackPurchase,
   type ClickTracking,
   type PurchaseData,

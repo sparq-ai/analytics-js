@@ -188,3 +188,27 @@ describe('v1 compat wrapper', () => {
     ]);
   });
 });
+
+describe('consent', () => {
+  it('drops events and writes no cookie while consent is revoked, resumes on grant', () => {
+    const insights = new SparqInsights({ ...cfg, consent: false });
+    insights.trackSearch({ query: 'a', queryId: 'qc1', totalItems: 1 });
+    insights.purchase({ orderId: 'o-c1' });
+    expect(sentEvents).toHaveLength(0);
+    expect(String((g.document as { cookie: string }).cookie)).not.toContain('uId=');
+
+    insights.setConsent(true);
+    insights.trackSearch({ query: 'a', queryId: 'qc2', totalItems: 1 });
+    expect(names()).toContain('search-query');
+  });
+
+  it('setTrackingConsent gates the singleton and future instances', async () => {
+    const { setTrackingConsent } = await import('../src/insights');
+    setTrackingConsent(false);
+    configureInsights({ ...cfg, collection: 'consent-test' }).trackSearch({ query: 'a', queryId: 'qc3', totalItems: 1 });
+    expect(sentEvents).toHaveLength(0);
+    setTrackingConsent(true);
+    getInsights()!.trackSearch({ query: 'a', queryId: 'qc4', totalItems: 1 });
+    expect(names()).toContain('search-query');
+  });
+});
