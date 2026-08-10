@@ -95,6 +95,10 @@ export class SparqInsights {
    * when there were no results.
    */
   trackSearch(data: SearchTracking): void {
+    // Consent gate BEFORE any state/storage mutation: while revoked, nothing
+    // may be written (session window, dedupe) or a later grant would suppress
+    // the first legitimate events.
+    if (!this.client.consent) return;
     if (!data.queryId || this.sentQueries.has(data.queryId)) return;
     this.rememberQuery(data.queryId);
     this.touchSession(data.collection);
@@ -130,7 +134,7 @@ export class SparqInsights {
    * later purchase can rejoin the line item to this search.
    */
   trackClick(data: ClickTracking): void {
-    if (!data.itemId) return;
+    if (!this.client.consent || !data.itemId) return;
     if (data.queryId) rememberClick(data.itemId, data.queryId);
     this.client.send(
       'product-clicked',
@@ -145,15 +149,18 @@ export class SparqInsights {
    * attribution window; unmatched items still count toward total revenue.
    */
   purchase(data: PurchaseData): void {
+    if (!this.client.consent) return;
     if (!data || data.orderId === undefined || data.orderId === null || data.orderId === '') return;
     const items = (data.items ?? []).map((it) => {
       const id = String(it.id);
       const queryId = queryIdFor(id);
+      // One quantity rule for both the payload and the derived sum: missing → 1,
+      // explicit 0 stays 0 (a zero-quantity line must not add price×1 to amount).
       const entry: Record<string, unknown> = { id, price: it.price, quantity: it.quantity ?? 1 };
       if (queryId) entry.queryId = queryId;
       return entry;
     });
-    const derived = items.reduce((sum, it) => sum + (Number(it.price) || 0) * (Number(it.quantity) || 1), 0);
+    const derived = items.reduce((sum, it) => sum + (Number(it.price) || 0) * Number(it.quantity ?? 1), 0);
     this.client.send(
       'purchase-complete',
       {
@@ -183,16 +190,16 @@ export class SparqInsights {
 
   private touchSession(collection?: string): void {
     let last = 0;
-    let storageOk = true;
     try {
       last = Number(localStorage.getItem(SESSION_KEY)) || 0;
     } catch {
-      storageOk = false;
+      /* read failed — treated like an unwritten window below */
     }
-    // Without storage (Safari private mode) `last` is 0 on every call — the
-    // in-memory flag degrades to one session event per page load instead of
-    // one per search, which would badly inflate the CTR denominator.
-    if (!storageOk && this.sessionTouched) return;
+    // Storage-less degradation (private mode / full quota — where EITHER the
+    // read or the write fails, leaving `last` at 0 forever): the in-memory
+    // flag caps it at one session event per page load instead of one per
+    // search, which would badly inflate the CTR denominator.
+    if (last === 0 && this.sessionTouched) return;
     const now = Date.now();
     if (now - last >= SESSION_WINDOW_MS) {
       this.client.send('search-session', { session: { startedAt: now } }, collection);
@@ -201,7 +208,7 @@ export class SparqInsights {
     try {
       localStorage.setItem(SESSION_KEY, String(now));
     } catch {
-      /* storage unavailable */
+      /* write failed — the sessionTouched guard above takes over */
     }
   }
 }
@@ -238,6 +245,10 @@ export function configureInsights(cfg: InsightsConfig): SparqInsights {
     c.trackingHost !== cfg.trackingHost
   ) {
     singleton = new SparqInsights(cfg);
+  } else if (cfg.consent !== undefined) {
+    // Same wiring config but a consent change must always take effect —
+    // reconfiguring with consent:false and still sending would be a breach.
+    singleton!.setConsent(cfg.consent);
   }
   return singleton!;
 }

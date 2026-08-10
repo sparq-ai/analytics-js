@@ -76,7 +76,12 @@ export class WireClient {
 
   /** Stable pseudonymous visitor id (cookie-persisted, v1-compatible). */
   userId(): string {
-    if (this.explicitUserId) return this.explicitUserId;
+    if (this.explicitUserId) {
+      // Persist an id set while consent was revoked once consent is granted,
+      // or identity resets on the next page load.
+      if (this.consent) writeCookie(UID_COOKIE, this.explicitUserId, UID_TTL_DAYS);
+      return this.explicitUserId;
+    }
     let id = readCookie(UID_COOKIE);
     if (!id) id = randomId();
     // Re-write on every read to slide the expiry, like v1 did.
@@ -84,9 +89,13 @@ export class WireClient {
     return id;
   }
 
-  /** Fire-and-forget. Never throws, never blocks the host page. */
+  /**
+   * Fire-and-forget. Never throws, never blocks the host page. Works in both
+   * browsers and Node (v1 supported server-side sends) — gated on fetch
+   * availability, not on window.
+   */
   send(eventName: string, eventData: Record<string, unknown>, collection?: string): void {
-    if (typeof window === 'undefined' || !this.consent) return;
+    if (typeof fetch !== 'function' || !this.consent) return;
     const body = JSON.stringify({
       app: this.cfg.appId,
       collection: collection ?? this.cfg.collection,
@@ -96,26 +105,21 @@ export class WireClient {
       timeStamp: Date.now(),
     });
     const user = this.userId();
+    // keepalive lets the request complete while the page navigates away
+    // (clicks/purchases fire at exactly that moment). No sendBeacon fallback:
+    // every runtime with sendBeacon also has fetch, and beacon would force the
+    // Bearer token into the query string (proxy/server logs).
     try {
-      if (typeof fetch === 'function') {
-        fetch(`${this.host}/events`, {
-          method: 'POST',
-          keepalive: true,
-          headers: {
-            'content-type': 'application/json',
-            authorization: `Bearer ${this.cfg.apiKey}`,
-            'x-st-user': user,
-          },
-          body,
-        }).catch(() => {});
-        return;
-      }
-      // sendBeacon cannot set headers — auth/identity ride the query string
-      // (st-tracking accepts ?u=; a host that doesn't simply drops the event).
-      navigator.sendBeacon?.(
-        `${this.host}/events?token=${encodeURIComponent(this.cfg.apiKey)}&u=${encodeURIComponent(user)}`,
-        new Blob([body], { type: 'application/json' }),
-      );
+      fetch(`${this.host}/events`, {
+        method: 'POST',
+        keepalive: true,
+        headers: {
+          'content-type': 'application/json',
+          authorization: `Bearer ${this.cfg.apiKey}`,
+          'x-st-user': user,
+        },
+        body,
+      }).catch(() => {});
     } catch {
       /* never surface tracking failures */
     }

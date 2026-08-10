@@ -15,13 +15,19 @@ type ClickEntry = { queryId: string; ts: number };
 type ClickStore = Record<string, ClickEntry>;
 
 function load(): ClickStore {
+  // Null-prototype store: item ids are attacker-influenced keys ("__proto__"
+  // as a product id must be data, not prototype pollution / a dropped entry).
+  const store: ClickStore = Object.create(null);
   try {
     const raw = localStorage.getItem(KEY);
     const parsed = raw ? (JSON.parse(raw) as unknown) : null;
-    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? (parsed as ClickStore) : {};
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+      for (const [k, v] of Object.entries(parsed)) store[k] = v as ClickEntry;
+    }
   } catch {
-    return {};
+    /* corrupted or unavailable storage — start empty */
   }
+  return store;
 }
 
 function save(store: ClickStore): void {
@@ -32,17 +38,21 @@ function save(store: ClickStore): void {
   }
 }
 
-function prune(store: ClickStore): ClickStore {
+function prune(store: ClickStore, max: number): ClickStore {
   const now = Date.now();
   const live = Object.entries(store).filter(([, e]) => e && now - e.ts < ATTRIBUTION_WINDOW_MS);
   // Oldest first so the cap drops stale clicks, not fresh ones.
   live.sort((a, b) => a[1].ts - b[1].ts);
-  return Object.fromEntries(live.slice(-MAX_ENTRIES));
+  const out: ClickStore = Object.create(null);
+  for (const [k, v] of live.slice(-max)) out[k] = v;
+  return out;
 }
 
 export function rememberClick(itemId: string, queryId: string): void {
   if (!itemId || !queryId) return;
-  const store = prune(load());
+  // Cap to MAX_ENTRIES - 1 BEFORE inserting so the persisted store never
+  // exceeds MAX_ENTRIES.
+  const store = prune(load(), MAX_ENTRIES - 1);
   store[itemId] = { queryId, ts: Date.now() };
   save(store);
 }

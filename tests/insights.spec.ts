@@ -212,3 +212,61 @@ describe('consent', () => {
     expect(names()).toContain('search-query');
   });
 });
+
+describe('review regressions', () => {
+  it('sends one session per page load when storage writes fail (Safari private mode)', () => {
+    const store = new Map<string, string>();
+    g.localStorage = {
+      getItem: (k: string) => store.get(k) ?? null,
+      setItem: () => {
+        throw new Error('quota');
+      },
+      removeItem: () => {},
+    } as unknown as Storage;
+    const insights = new SparqInsights(cfg);
+    insights.trackSearch({ query: 'a', queryId: 'r1', totalItems: 1 });
+    insights.trackSearch({ query: 'b', queryId: 'r2', totalItems: 1 });
+    insights.trackSearch({ query: 'c', queryId: 'r3', totalItems: 1 });
+    expect(names().filter((n) => n === 'search-session')).toHaveLength(1);
+  });
+
+  it('applies consent:false on reconfigure with same wiring config', () => {
+    configureInsights(cfg).trackSearch({ query: 'a', queryId: 'r4', totalItems: 1 });
+    const before = sentEvents.length;
+    configureInsights({ ...cfg, consent: false }).trackSearch({ query: 'b', queryId: 'r5', totalItems: 1 });
+    expect(sentEvents.length).toBe(before);
+    configureInsights({ ...cfg, consent: true });
+  });
+
+  it('writes no click map while consent revoked, and first session after grant still fires', () => {
+    const insights = new SparqInsights({ ...cfg, consent: false });
+    insights.trackClick({ itemId: 'pc1', queryId: 'qc9', position: 1 });
+    expect(queryIdFor('pc1')).toBeUndefined();
+    insights.trackSearch({ query: 'a', queryId: 'r6', totalItems: 1 });
+    expect(sentEvents).toHaveLength(0);
+    insights.setConsent(true);
+    insights.trackSearch({ query: 'a', queryId: 'r7', totalItems: 1 });
+    expect(names()).toContain('search-session');
+  });
+
+  it('sends from Node (fetch without window)', () => {
+    Reflect.deleteProperty(g, 'window');
+    new SparqInsights(cfg).sendEvent('server-event', { a: 1 });
+    expect(names()).toContain('server-event');
+  });
+
+  it('quantity 0 contributes 0 to the derived amount', () => {
+    new SparqInsights(cfg).purchase({ orderId: 'q0', items: [{ id: 'x', price: 10, quantity: 0 }] });
+    const order = (byName('purchase-complete') as { eventData: { order: Record<string, unknown> } }).eventData.order;
+    expect(order.amount).toBe(0);
+  });
+
+  it('click map caps at 50 including the newest entry and keeps __proto__ ids as data', () => {
+    for (let i = 0; i < 55; i++) rememberClick(`cap${i}`, `q${i}`);
+    const raw = JSON.parse((g.localStorage as Storage).getItem('sparq:clicks')!) as Record<string, unknown>;
+    expect(Object.keys(raw).length).toBeLessThanOrEqual(50);
+    rememberClick('__proto__', 'qproto');
+    expect(queryIdFor('__proto__')).toBe('qproto');
+    clearClickMap();
+  });
+});

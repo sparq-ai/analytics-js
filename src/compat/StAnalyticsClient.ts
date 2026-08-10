@@ -3,8 +3,11 @@ import Events from '../domain/Events';
 import type { ISearchResponse } from '../domain/ISearchResponse';
 
 /**
- * v1 API surface, preserved verbatim so existing integrations upgrade with a
- * version bump and zero code changes. Internally backed by the v2 engine —
+ * v1 API surface, preserved verbatim: ESM/bundler consumers upgrade with a
+ * version bump and zero code changes. Plain CommonJS `require()` callers get a
+ * namespace object (class at `.default`) instead of v1's `export =` class, and
+ * the script-tag global is now `SparqAnalytics.StAnalyticsClient` — both are
+ * documented in the README migration notes. Internally backed by the v2 engine —
  * fetch/beacon transport, runtime-configurable endpoint — instead of axios
  * with a build-time-baked URL.
  *
