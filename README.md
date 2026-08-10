@@ -1,101 +1,75 @@
 # @sparq/analytics-js
 
-JavaScript/TypeScript client for Sparq Analytics. Track search queries, user events, and analytics data in your web applications.
+Sparq search analytics SDK — reports search, click and purchase events to the Sparq pipeline with **queryID attribution** built in, so the Sparq dashboard can show CTR, search conversion and search-attributed revenue.
 
-## Installation
+Zero dependencies. Ships ESM + CJS + a minified IIFE for script tags. Events are delivered with `fetch keepalive` (they survive page navigation) and never throw — analytics can never break your page.
 
-```bash
+> Using the Sparq Search UI widget? You don't need this package — the widget embeds it. Add the `insights` attribute to `<sparq-search>` instead. This SDK is for custom search integrations built directly on the Sparq API.
+
+## Install
+
+```sh
 npm install @sparq/analytics-js
 ```
 
-## Usage
+or script tag (exposes `window.SparqAnalytics`):
 
-### Initialize the client
-
-```javascript
-import StAnalyticsClient from '@sparq/analytics-js';
-
-const analytics = new StAnalyticsClient('your-app-id', 'your-search-token');
+```html
+<script src="https://cdn.sparq.ai/analytics-js@2/sparq-analytics.iife.global.js" defer></script>
 ```
 
-### Set a custom user ID (optional)
+## v2 API
 
-```javascript
-analytics.setUser('user-123');
-```
+```js
+import { SparqInsights } from '@sparq/analytics-js';
 
-### Set global properties
+const insights = new SparqInsights({
+  appId: 'acme',
+  apiKey: 'pk_search_xxx',      // your search-only token
+  collection: 'products',
+  // trackingHost: 'https://events.sparq.ai/v2'   (default; override for staging)
+});
 
-Add properties that will be included with every event:
+// After every settled search — pass the response's uniqueId as queryId:
+insights.trackSearch({ query: 'shoes', queryId: response.uniqueId, totalItems: response.totalHits });
 
-```javascript
-analytics.setGlobalProps({
-  platform: 'web',
-  version: '1.0.0'
+// When a shopper clicks a result (position is 1-based):
+insights.trackClick({ itemId: '8821', queryId: response.uniqueId, position: 3 });
+
+// On the order confirmation page — items are auto-attributed to the search
+// whose result was clicked within the last hour:
+insights.purchase({
+  orderId: '10482',
+  currency: 'EUR',
+  items: [{ id: '8821', price: 39.9, quantity: 2 }],
 });
 ```
 
-### Track search queries
+Sessions (`search-session`), per-search dedupe, the 1-hour click→purchase attribution window, and the anonymous `uId` visitor cookie are all handled internally. `setUser(id)` overrides the visitor id; `setGlobalProps(obj)` merges properties into every event; `sendEvent(name, data)` is the generic escape hatch.
 
-```javascript
-analytics.searchQuery(searchResponse, 'title', 'collection-id');
+For pages without your own instance (e.g. a confirmation-page snippet): `configureInsights(cfg)` once, then `trackPurchase(order)`.
+
+**Consent:** pass `consent: false` in the config (or call `setTrackingConsent(false)` before configuring) to start in the denied state — no events are sent and no cookie is written until `setConsent(true)` / `setTrackingConsent(true)` runs, e.g. from your cookie banner's accept handler.
+
+## v1 compatibility
+
+The v1 surface still works unchanged:
+
+```js
+import StAnalyticsClient from '@sparq/analytics-js';
+
+const client = new StAnalyticsClient('appUniqueId', 'searchToken');
+client.searchQuery(searchResponse, 'title', 'collectionId');
+client.emptySearchResults(searchResponse, false, 'collectionId');
+client.sendEvent('custom-event', { any: 'data' }, 'collectionId');
 ```
 
-### Track empty search results
+v2 differences (deliberate): the endpoint defaults to production and is configurable at runtime (3rd constructor arg or `ST_TRACKING_SERVER` under Node) instead of being baked in at build time; visitor ids generate locally (same `uId` cookie — identity carries over) instead of a blocking server round-trip; axios is gone.
 
-```javascript
-analytics.emptySearchResults(searchResponse, isFilterApplied, 'collection-id');
+## Development
+
+```sh
+npm run build       # tsup → dist/ (esm, cjs, dts, iife)
+npm test            # vitest
+npm run typecheck   # tsc --noEmit
 ```
-
-### Send custom events
-
-```javascript
-analytics.sendEvent('event-name', {
-  key: 'value'
-}, 'collection-id');
-```
-
-## API Reference
-
-### `new StAnalyticsClient(appUniqueId, searchToken)`
-
-Creates a new analytics client instance.
-
-- `appUniqueId` - Your application's unique identifier
-- `searchToken` - Your Sparq search token for authentication
-
-### `setUser(userId)`
-
-Sets a custom user ID for tracking. Returns the client instance for chaining.
-
-### `setGlobalProps(properties)`
-
-Sets global properties that will be merged with all event data.
-
-### `sendEvent(eventName, eventData, collectionUniqueId?)`
-
-Sends a custom analytics event.
-
-- `eventName` - Name of the event
-- `eventData` - Object containing event data
-- `collectionUniqueId` - Optional collection identifier
-
-### `searchQuery(searchResponse, label, collectionUniqueId?)`
-
-Tracks a search query event with results.
-
-- `searchResponse` - The search response object
-- `label` - The field to use as the result label
-- `collectionUniqueId` - Optional collection identifier
-
-### `emptySearchResults(searchResponse, isFilterApplied, collectionUniqueId?)`
-
-Tracks when a search returns no results.
-
-- `searchResponse` - The search response object
-- `isFilterApplied` - Whether filters were applied to the search
-- `collectionUniqueId` - Optional collection identifier
-
-## License
-
-MIT
