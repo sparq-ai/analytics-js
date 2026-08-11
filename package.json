@@ -1,7 +1,7 @@
 {
   "name": "@sparq/analytics-js",
-  "version": "2.0.0",
-  "description": "Sparq search analytics SDK — search, click and purchase events with queryID attribution",
+  "version": "2.0.1",
+  "description": "Sparq search analytics SDK \u2014 search, click and purchase events with queryID attribution",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",

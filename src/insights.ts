@@ -1,5 +1,6 @@
 import { WireClient, type InsightsConfig } from './wireClient';
 import { queryIdFor, rememberClick } from './clickMap';
+import { rememberOrder, wasOrderReported } from './sentOrders';
 
 /**
  * SparqInsights — the canonical implementation of Sparq search analytics.
@@ -149,8 +150,16 @@ export class SparqInsights {
    * attribution window; unmatched items still count toward total revenue.
    */
   purchase(data: PurchaseData): void {
+    // Consent gate FIRST — while revoked nothing may be sent or written,
+    // including the dedupe record (or a later grant would suppress the first
+    // legitimately-consented purchase report).
     if (!this.client.consent) return;
     if (!data || data.orderId === undefined || data.orderId === null || data.orderId === '') return;
+    // One purchase-complete per order, ever: confirmation pages reload
+    // (refresh, back button, receipt links, payment redirects) and each reload
+    // re-runs the purchase snippet. Persisted, so it survives the reload.
+    const orderKey = String(data.orderId);
+    if (wasOrderReported(orderKey)) return;
     const items = (data.items ?? []).map((it) => {
       const id = String(it.id);
       const queryId = queryIdFor(id);
@@ -161,11 +170,12 @@ export class SparqInsights {
       return entry;
     });
     const derived = items.reduce((sum, it) => sum + (Number(it.price) || 0) * Number(it.quantity ?? 1), 0);
+    rememberOrder(orderKey);
     this.client.send(
       'purchase-complete',
       {
         order: {
-          orderId: String(data.orderId),
+          orderId: orderKey,
           amount: typeof data.amount === 'number' ? data.amount : +derived.toFixed(2),
           currency: data.currency,
           items,
