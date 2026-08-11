@@ -270,3 +270,59 @@ describe('review regressions', () => {
     clearClickMap();
   });
 });
+
+describe('purchase dedupe', () => {
+  it('reports each orderId exactly once across page reloads (persisted)', async () => {
+    const { clearSentOrders } = await import('../src/sentOrders');
+    clearSentOrders();
+    const first = new SparqInsights(cfg);
+    first.purchase({ orderId: 'dup-1', items: [{ id: 'a', price: 10, quantity: 1 }] });
+    // Simulate a reload: fresh instance, same localStorage.
+    const reloaded = new SparqInsights(cfg);
+    reloaded.purchase({ orderId: 'dup-1', items: [{ id: 'a', price: 10, quantity: 1 }] });
+    expect(names().filter((n) => n === 'purchase-complete')).toHaveLength(1);
+    reloaded.purchase({ orderId: 'dup-2' });
+    expect(names().filter((n) => n === 'purchase-complete')).toHaveLength(2);
+    clearSentOrders();
+  });
+
+  it('dedupes within the page even when storage is unavailable', async () => {
+    const { clearSentOrders } = await import('../src/sentOrders');
+    clearSentOrders();
+    g.localStorage = {
+      getItem: () => {
+        throw new Error('blocked');
+      },
+      setItem: () => {
+        throw new Error('blocked');
+      },
+      removeItem: () => {},
+    } as unknown as Storage;
+    const insights = new SparqInsights(cfg);
+    insights.purchase({ orderId: 'mem-1' });
+    insights.purchase({ orderId: 'mem-1' });
+    expect(names().filter((n) => n === 'purchase-complete')).toHaveLength(1);
+  });
+
+  it('a consent-revoked purchase leaves no dedupe record (post-grant purchase still reports)', async () => {
+    const { clearSentOrders, wasOrderReported } = await import('../src/sentOrders');
+    clearSentOrders();
+    const insights = new SparqInsights({ ...cfg, consent: false });
+    insights.purchase({ orderId: 'c-1', items: [] });
+    expect(sentEvents).toHaveLength(0);
+    expect(wasOrderReported('c-1')).toBe(false);
+    insights.setConsent(true);
+    insights.purchase({ orderId: 'c-1' });
+    expect(names()).toContain('purchase-complete');
+    clearSentOrders();
+  });
+
+  it('caps the persisted order store at 20 entries', async () => {
+    const { clearSentOrders, rememberOrder } = await import('../src/sentOrders');
+    clearSentOrders();
+    for (let i = 0; i < 30; i++) rememberOrder(`o${i}`);
+    const raw = JSON.parse((g.localStorage as Storage).getItem('sparq:orders')!) as Record<string, number>;
+    expect(Object.keys(raw).length).toBeLessThanOrEqual(20);
+    clearSentOrders();
+  });
+});

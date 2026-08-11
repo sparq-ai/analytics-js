@@ -24,6 +24,7 @@ export {
 } from './insights';
 export { WireClient, type InsightsConfig } from './wireClient';
 export { clearClickMap, queryIdFor, rememberClick } from './clickMap';
+export { clearSentOrders, rememberOrder, wasOrderReported } from './sentOrders';
 export { default as Events } from './domain/Events';
 export type { ISearchRequest, ISearchResponse } from './domain/ISearchResponse';
 
