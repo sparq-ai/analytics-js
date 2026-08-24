@@ -18,6 +18,16 @@ import { rememberOrder, wasOrderReported } from './sentOrders';
  * suppresses replays of the SAME request (cache hits, back button).
  */
 
+/**
+ * Where the shopper triggered the search — the entry point that "reached"
+ * these results, powering the Search-channels breakdown. A fixed enum (not
+ * free-form tags): the widget stamps one value per search from the component
+ * that fired it. `recommendations` is reserved for recommendation surfaces not
+ * wired yet. Omitted by older widgets, which the channels report buckets as
+ * "unknown".
+ */
+export type SearchSource = 'autocomplete' | 'search_results' | 'category_browse' | 'recommendations';
+
 export interface SearchTracking {
   query: string;
   /** The search response's unique id — omit and the search is untracked. */
@@ -26,6 +36,8 @@ export interface SearchTracking {
   processingTimeMs?: number;
   /** True when any facet/numeric filter was active (reported on empty searches). */
   isFilterApplied?: boolean;
+  /** Entry point that reached these results — the Search-channels dimension. */
+  source?: SearchSource;
   collection?: string;
 }
 
@@ -111,6 +123,7 @@ export class SparqInsights {
           queryId: data.queryId,
           responseTime: data.processingTimeMs,
           totalHits: data.totalItems,
+          source: data.source,
         },
       },
       data.collection,
