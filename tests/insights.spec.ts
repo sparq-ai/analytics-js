@@ -73,6 +73,18 @@ describe('SparqInsights.trackSearch', () => {
     expect(search.eventData.search).toMatchObject({ query: 'shoes', queryId: 'q1', totalHits: 3, responseTime: 7 });
   });
 
+  it('stamps the channel source on search-query when provided', () => {
+    new SparqInsights(cfg).trackSearch({ query: 'shoes', queryId: 'q1', totalItems: 3, source: 'autocomplete' });
+    const search = byName('search-query') as { eventData: { search: Record<string, unknown> } };
+    expect(search.eventData.search.source).toBe('autocomplete');
+  });
+
+  it('omits source entirely when the caller does not set it', () => {
+    new SparqInsights(cfg).trackSearch({ query: 'shoes', queryId: 'q1', totalItems: 3 });
+    const search = byName('search-query') as { eventData: { search: Record<string, unknown> } };
+    expect('source' in search.eventData.search).toBe(false);
+  });
+
   it('dedupes by queryId and skips untracked searches', () => {
     const insights = new SparqInsights(cfg);
     insights.trackSearch({ query: 'a', queryId: 'q1', totalItems: 1 });

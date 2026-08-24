@@ -1,6 +1,6 @@
 {
   "name": "@sparq/analytics-js",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "Sparq search analytics SDK \u2014 search, click and purchase events with queryID attribution",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -26,14 +26,24 @@
     "build": "tsup",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "prepublishOnly": "npm run typecheck && npm test && npm run build"
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "prepublishOnly": "npm run typecheck && npm run lint && npm test && npm run build"
   },
   "private": false,
+  "license": "MIT",
   "repository": "https://github.com/sparq-ai/analytics-js",
   "author": "tech@sparq.ai",
   "devDependencies": {
+    "@eslint/js": "^9.9.0",
+    "eslint": "^9.9.0",
+    "eslint-config-prettier": "^9.1.0",
+    "globals": "^15.9.0",
+    "prettier": "^3.3.0",
     "tsup": "^8.0.0",
     "typescript": "^5.5.0",
+    "typescript-eslint": "^8.2.0",
     "vitest": "^3.0.0"
   }
 }

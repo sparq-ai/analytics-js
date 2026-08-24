@@ -1,4 +1,4 @@
-import { SparqInsights } from '../insights';
+import { SparqInsights, type SearchSource } from '../insights';
 import Events from '../domain/Events';
 import type { ISearchResponse } from '../domain/ISearchResponse';
 
@@ -52,8 +52,17 @@ export default class StAnalyticsClient {
     this.insights.sendEvent(eventName, eventData, collectionUniqueId);
   }
 
-  /** v1 signature — same wire payload as v1 (top-10 items with rank + label). */
-  public searchQuery(searchResponse: ISearchResponse, label: string, collectionUniqueId?: string): void {
+  /**
+   * v1 signature — same wire payload as v1 (top-10 items with rank + label).
+   * `source` is an additive optional arg (v1 callers omit it): the Search-
+   * channels entry point, stamped into search.source like the native path.
+   */
+  public searchQuery(
+    searchResponse: ISearchResponse,
+    label: string,
+    collectionUniqueId?: string,
+    source?: SearchSource,
+  ): void {
     const top = searchResponse.results
       .slice(0, Math.min(searchResponse.totalHits, 10))
       .map((result, index) => ({ rank: index, label: (result as Record<string, unknown>)[label] }));
@@ -65,6 +74,7 @@ export default class StAnalyticsClient {
           queryId: searchResponse.uniqueId,
           responseTime: searchResponse.responseTime,
           totalHits: searchResponse.totalHits,
+          source,
           items: top,
         },
       },

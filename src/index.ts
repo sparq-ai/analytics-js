@@ -20,6 +20,7 @@ export {
   type ClickTracking,
   type PurchaseData,
   type PurchaseItem,
+  type SearchSource,
   type SearchTracking,
 } from './insights';
 export { WireClient, type InsightsConfig } from './wireClient';
